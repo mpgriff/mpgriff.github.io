@@ -1,1 +1,2 @@
-# mpgriff.github.io
+# matt griffiths
+## geophysicist and programmer
