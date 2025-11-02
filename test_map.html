@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Floating PiP Map (Standalone)</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0;
+        font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        min-height: 200vh; /* some scroll to show overlay behavior */
+      }
+      .container { padding: 24px; max-width: 900px; margin: 0 auto; }
+      h1 { margin: 0 0 12px; }
+      p { margin: 0 0 12px; }
+
+      /* Floating PiP map */
+      .pip-map {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        width: 420px;
+        height: 300px;
+        background: #fff;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.2);
+        overflow: hidden;
+        resize: both;
+        z-index: 9999;
+      }
+      @media (prefers-color-scheme: dark) {
+        .pip-map { background: #111; border-color: #333; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+        .pip-map__bar { background: #1a1a1a; border-bottom-color: #333; color: #ddd; }
+        .pip-map__btn { color: #ccc; }
+        .pip-map__btn:hover { color: #fff; }
+      }
+      .pip-map__bar {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 8px;
+        background: #f7f7f7;
+        border-bottom: 1px solid #e5e5e5;
+        cursor: move;
+        user-select: none;
+      }
+      .pip-map__title { font-size: 14px; color: #333; }
+      .pip-map__spacer { flex: 1; }
+      .pip-map__btn {
+        appearance: none;
+        background: none;
+        border: 0;
+        padding: 2px 8px;
+        font-size: 18px;
+        line-height: 1;
+        color: #555;
+        cursor: pointer;
+      }
+      .pip-map__btn:hover { color: #111; }
+      .pip-map iframe { width: 100%; height: calc(100% - 36px); border: 0; display: block; }
+      .pip-map.is-min { width: 260px; height: 52px; }
+      .pip-map.is-min iframe { display: none; }
+
+      .pip-map__toggle {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: 1px solid #e5e5e5;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        cursor: pointer;
+        z-index: 9998;
+      }
+      .pip-map:not([hidden]) + .pip-map__toggle { transform: translateY(calc(100% + 12px)); }
+      .pip-map--dragging, .pip-map--dragging * { cursor: move !important; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Floating Picture‑in‑Picture Map (Standalone)</h1>
+      <p>Click the round button to open the floating map. Drag the top bar to move it. Resize via the corner handle. Use – to minimize and × to close. State persists across page reloads.</p>
+      <p>Note: Google’s standard embed can’t hide political boundaries; satellite‑only without labels isn’t available in the free embed.</p>
+    </div>
+
+    <!-- Floating PiP Map -->
+    <div id="pip-map" class="pip-map" hidden>
+      <div class="pip-map__bar" aria-label="Drag to move">
+        <span class="pip-map__title">Map</span>
+        <span class="pip-map__spacer"></span>
+        <button class="pip-map__btn" id="pip-map-min" aria-label="Minimize">–</button>
+        <button class="pip-map__btn" id="pip-map-close" aria-label="Close">×</button>
+      </div>
+      <iframe
+        id="pip-map-iframe"
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d35532.52714950983!2d10.140689484901166!3d56.178144846841874!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x464c4cb15397788b%3A0x8c4dd7d9912ea2af!2sAarhus!5e0!3m2!1sen!2sdk!4v1761893237716!5m2!1sen!2sdk"
+        loading="lazy"
+        allowfullscreen
+        referrerpolicy="no-referrer-when-downgrade">
+      </iframe>
+    </div>
+    <button id="pip-map-toggle" class="pip-map__toggle" aria-label="Toggle map">🗺️</button>
+
+    <script>
+      (function() {
+        const box = document.getElementById('pip-map');
+        const toggle = document.getElementById('pip-map-toggle');
+        const btnMin = document.getElementById('pip-map-min');
+        const btnClose = document.getElementById('pip-map-close');
+        if (!box || !toggle) return;
+
+        const STORAGE_KEY = 'pip-map-standalone';
+        const read = () => JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        const write = (s) => localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+        const state = Object.assign({ open: false, min: false, pos: { right: '16px', bottom: '16px' }, size: {} }, read());
+
+        // Restore
+        box.hidden = !state.open;
+        if (state.min) box.classList.add('is-min');
+        if (state.pos) { box.style.right = state.pos.right; box.style.bottom = state.pos.bottom; }
+        if (state.size && !state.min) { if (state.size.w) box.style.width = state.size.w; if (state.size.h) box.style.height = state.size.h; }
+
+        const save = () => write({
+          open: !box.hidden,
+          min: box.classList.contains('is-min'),
+          pos: { right: box.style.right || '16px', bottom: box.style.bottom || '16px' },
+          size: { w: box.style.width || '', h: box.style.height || '' }
+        });
+
+        toggle.addEventListener('click', () => { box.hidden = !box.hidden; save(); });
+        btnClose.addEventListener('click', () => { box.hidden = true; save(); });
+        btnMin.addEventListener('click', () => { box.classList.toggle('is-min'); save(); });
+
+        // Drag by header bar
+        const bar = box.querySelector('.pip-map__bar');
+        let drag = null;
+
+        const onPointerDown = (x, y) => {
+          drag = { x, y, r: parseInt(getComputedStyle(box).right, 10), b: parseInt(getComputedStyle(box).bottom, 10) };
+          document.body.classList.add('pip-map--dragging');
+        };
+        const onPointerMove = (x, y) => {
+          if (!drag) return;
+          const dx = x - drag.x, dy = y - drag.y;
+          box.style.right = Math.max(0, drag.r - dx) + 'px';
+          box.style.bottom = Math.max(0, drag.b - dy) + 'px';
+        };
+        const onPointerUp = () => {
+          if (!drag) return;
+          drag = null;
+          document.body.classList.remove('pip-map--dragging');
+          save();
+        };
+
+        // Mouse
+        bar.addEventListener('mousedown', (e) => { onPointerDown(e.clientX, e.clientY); e.preventDefault(); });
+        window.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', onPointerUp);
+
+        // Touch
+        bar.addEventListener('touchstart', (e) => { const t = e.touches[0]; if (t) onPointerDown(t.clientX, t.clientY); }, { passive: true });
+        window.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (t) onPointerMove(t.clientX, t.clientY); }, { passive: true });
+        window.addEventListener('touchend', onPointerUp);
+
+        // Persist size after user resizes
+        if ('ResizeObserver' in window) new ResizeObserver(() => save()).observe(box);
+      })();
+    </script>
+  </body>
+</html>
