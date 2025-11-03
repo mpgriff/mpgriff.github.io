@@ -25,7 +25,7 @@ For a long time, I believed the answer depended on how finely we discretize our 
 My rational for this belief was that if the NMR signal is not large enough to change the value of the measured bit, we could not observe the oscillator nature of the NMR signal and therefore we would not detect its presence.
 If we take a noise-free signal, discretize it, if the signal amplitude is always below 1/2 the bit resolution, the digitized signal will be a stream of zeros.
 No detected signal. 
-But, my supervisor, Dr. Jakob Juul Larsen, wisely postulated that the presence of noise means this is not the fundamental limit on a signal detectibility.
+But, my supervisor, wisely postulated that the presence of noise means this is not the fundamental limit on a signal detectibility.
 This does not match my intuition. Can adding noise actually improve a signals detectibility?
 This is the inspiration for this post. Let's look at some simulations.
 
