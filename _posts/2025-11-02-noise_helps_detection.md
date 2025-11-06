@@ -40,24 +40,9 @@ Setting the bit resolution to $\Delta$, we see the more staircase-like nature of
 Here we confirm our intuition; when the signal amplitude is always below 1/2 the bit resolution, the digitized signal is a stream of zeros. 
 No detected signal for the second half of this noise-free recording.
 
-Now lets add a little noise to the signal before we discretize it.
-This will represent a single measurement or 'stack' in the field.
-Of course it becomes much more difficult to see the underlying signal.
-To mimic our operations in the field, we will repeat the measurements 10-100s of times and take the average to reduce the noise effects.
-Let's try with 100 repeats to see the its effect.
+![SNMR signal simulation]({{ "/assets/images/251102_fourier_transforms_of_discretized_signals.png" | relative_url }})
 
-*Figure 2: the addition of noise on the signal and the effects of averaging repeated measurements.*
-
-It's impressive how averaging the signal can salvage the underlying signal in the midst of such high noise levels.
-A big W for stacking.
-
-Now having seen the effects of the discretization, added noise, and signal averaging, we'll analyze the signal more carefully.
-Since the signal has a very particular frequency, analyzing it's frequency content Fast Fourier Transform (FFT) is a natural approach.
-
-*Figure 3: FFT of previous signals.*
-
-To my surprise the FFT of the discretized signal closely match that of the _continuous_ signal. 
-The effects of discretizing really only effect the high frequencies.
+*Figure 2: Fourier transforms of discretized exponential decays.*
 
 - sidenote: applying a window to a signal (for example, zeroing out the pulses) means that no matter what amplitudes are present in this interval, the result will be zero there. Looking at this in the frequency domain, the convolution with the window spectra still results in this zeroed interval in the time-domain.
 
